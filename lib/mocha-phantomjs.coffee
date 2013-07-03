@@ -34,13 +34,24 @@ class Reporter
   finish: ->
     phantom.exit @page.evaluate -> mochaPhantomJS.failures
 
+  handleConsoleMessage: (msg) ->
+    system.stdout.writeLine(msg)
+    m = msg.match /phantom, please click at (\d+) (\d+)/
+    if m
+      x = parseInt m[1]
+      y = parseInt m[2]
+      system.stdout.writeLine "XXX Clicking at #{x} #{y}"
+      page.sendEvent("mousemove", x, y)
+      page.sendEvent("click", x, y)
+      page.render("clicked.png")
+
   initPage: ->
     @page = webpage.create
       settings: @config.settings
     @page.customHeaders = @config.headers if @config.headers
     @page.addCookie(cookie) for cookie in @config.cookies or []
     @page.viewportSize = @config.viewportSize if @config.viewportSize
-    @page.onConsoleMessage = (msg) -> system.stdout.writeLine(msg)
+    @page.onConsoleMessage = (msg) => @handleConsoleMessage(msg)
     @page.onError = (msg, traces) =>
       for {line, file}, index in traces
         traces[index] = "  #{file}:#{line}"
